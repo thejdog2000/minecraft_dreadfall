@@ -241,6 +241,7 @@ public final class DreadfallConfigManager {
         Map<String, Object> attributes = optionalMap(mob, "attributes", "mobs_settings.yml " + mobId);
         Map<String, Object> aggro = optionalMap(mob, "aggro", "mobs_settings.yml " + mobId);
         Map<String, Object> sunlight = optionalMap(mob, "sunlight", "mobs_settings.yml " + mobId);
+        Map<String, Object> explosions = optionalMap(mob, "explosions", "mobs_settings.yml " + mobId);
 
         return new MobRuntimeConfig(
                 mobId,
@@ -257,6 +258,12 @@ public final class DreadfallConfigManager {
                 ),
                 new MobRuntimeConfig.SunlightSettings(
                         optionalBoolean(sunlight, "burns_in_daylight")
+                ),
+                new MobRuntimeConfig.ExplosionSettings(
+                        optionalBoolean(explosions, "enabled").orElse(false),
+                        optionalDouble(explosions, "radius_multiplier"),
+                        optionalInteger(explosions, "fuse_ticks"),
+                        optionalDouble(explosions, "fireball_power_multiplier")
                 ),
                 parseEquipment(mob, mobId)
         );
@@ -402,6 +409,14 @@ public final class DreadfallConfigManager {
         Object value = root.get(key);
         if (value instanceof Number number) {
             return Optional.of(number.doubleValue());
+        }
+        return Optional.empty();
+    }
+
+    private Optional<Integer> optionalInteger(Map<String, Object> root, String key) {
+        Object value = root.get(key);
+        if (value instanceof Integer integer) {
+            return Optional.of(integer);
         }
         return Optional.empty();
     }

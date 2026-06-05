@@ -3,6 +3,7 @@ package com.thejdog2000.dreadfall.behavior;
 import com.thejdog2000.dreadfall.DreadfallMod;
 import com.thejdog2000.dreadfall.config.DreadfallConfigManager;
 import com.thejdog2000.dreadfall.config.MobRuntimeConfig;
+import com.thejdog2000.dreadfall.mixin.CreeperAccessor;
 import net.fabricmc.fabric.api.event.lifecycle.v1.EntityLoadData;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -11,6 +12,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
@@ -60,6 +62,7 @@ public final class MobSpawnApplier {
 
         applyAttributes(mob, config);
         applyEquipment(mob, config);
+        applyExplosions(mob, config);
     }
 
     private void applyAttributes(Mob mob, MobRuntimeConfig config) {
@@ -112,5 +115,22 @@ public final class MobSpawnApplier {
 
         mob.setItemSlot(slot, new ItemStack(item.get()));
         mob.setDropChance(slot, equipment.dropChance());
+    }
+
+    private void applyExplosions(Mob mob, MobRuntimeConfig config) {
+        if (!config.explosions().enabled()) {
+            return;
+        }
+
+        if (mob instanceof Creeper) {
+            CreeperAccessor accessor = (CreeperAccessor) mob;
+            config.explosions().fuseTicks()
+                    .filter(fuseTicks -> fuseTicks > 0)
+                    .ifPresent(accessor::dreadfall$setMaxSwell);
+            config.explosions().radiusMultiplier()
+                    .filter(multiplier -> multiplier > 0.0)
+                    .map(multiplier -> Math.max(1, (int) Math.round(3.0 * multiplier)))
+                    .ifPresent(accessor::dreadfall$setExplosionRadius);
+        }
     }
 }

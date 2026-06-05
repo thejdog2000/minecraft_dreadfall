@@ -9,6 +9,7 @@ public record MobRuntimeConfig(
         AttributeSettings attributes,
         AggroSettings aggro,
         SunlightSettings sunlight,
+        ExplosionSettings explosions,
         Map<String, EquipmentSettings> equipment
 ) {
     public Optional<EquipmentSettings> equipmentFor(String slot) {
@@ -34,6 +35,14 @@ public record MobRuntimeConfig(
     ) {
     }
 
+    public record ExplosionSettings(
+            boolean enabled,
+            Optional<Double> radiusMultiplier,
+            Optional<Integer> fuseTicks,
+            Optional<Double> fireballPowerMultiplier
+    ) {
+    }
+
     public record EquipmentSettings(
             String itemId,
             double chance,
@@ -41,4 +50,3 @@ public record MobRuntimeConfig(
     ) {
     }
 }
-

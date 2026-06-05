@@ -10,8 +10,10 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -72,6 +74,7 @@ public final class DreadfallConfigManager {
     private final Path configDirectory;
     private final Yaml yaml;
     private Instant lastLoadedAt;
+    private Map<String, MobRuntimeConfig> mobConfigs = Map.of();
 
     public DreadfallConfigManager(Path configDirectory) {
         this.configDirectory = configDirectory;
@@ -98,6 +101,7 @@ public final class DreadfallConfigManager {
             validateOverworldSettings(overworldSettings);
             validateNightmareSettings(nightmareSettings);
             validateMobsSettings(mobsSettings);
+            mobConfigs = parseMobConfigs(mobsSettings);
 
             lastLoadedAt = Instant.now();
             DreadfallMod.LOGGER.info("Loaded Dreadfall configs from {}.", configDirectory);
@@ -116,6 +120,10 @@ public final class DreadfallConfigManager {
 
     public List<String> getConfigFiles() {
         return CONFIG_FILES;
+    }
+
+    public Optional<MobRuntimeConfig> getMobConfig(String mobId) {
+        return Optional.ofNullable(mobConfigs.get(mobId));
     }
 
     private void createDefaultIfMissing(String configFile) throws IOException {
@@ -180,7 +188,115 @@ public final class DreadfallConfigManager {
             validateMobId(mobId, "mobs_settings.yml mobs");
             Map<String, Object> mob = requireMapValue(mobEntry.getValue(), "mobs_settings.yml " + mobId);
             validateExplosionSettings(mob, "mobs_settings.yml " + mobId);
+            validateEquipmentSettings(mob, "mobs_settings.yml " + mobId);
         }
+    }
+
+    private void validateEquipmentSettings(Map<String, Object> mob, String path) throws ConfigValidationException {
+        Object equipmentValue = mob.get("equipment");
+        if (equipmentValue == null) {
+            return;
+        }
+
+        Map<String, Object> equipment = requireMapValue(equipmentValue, path + ".equipment");
+        validateEquipmentSlot(equipment, "main_hand", path);
+        validateEquipmentSlot(equipment, "off_hand", path);
+
+        Object armorValue = equipment.get("armor");
+        if (armorValue instanceof Map<?, ?> armorMap) {
+            Map<String, Object> armor = castMap(path + ".equipment.armor", armorMap);
+            validateEquipmentSlot(armor, "helmet", path + ".equipment.armor");
+            validateEquipmentSlot(armor, "chestplate", path + ".equipment.armor");
+            validateEquipmentSlot(armor, "leggings", path + ".equipment.armor");
+            validateEquipmentSlot(armor, "boots", path + ".equipment.armor");
+        }
+    }
+
+    private void validateEquipmentSlot(Map<String, Object> equipment, String slot, String path) throws ConfigValidationException {
+        Object slotValue = equipment.get(slot);
+        if (slotValue == null) {
+            return;
+        }
+
+        Map<String, Object> slotConfig = requireMapValue(slotValue, path + "." + slot);
+        validateIdentifier(requireString(slotConfig, "item", path + "." + slot), path + "." + slot + ".item");
+        requireNumber(slotConfig, "chance", path + "." + slot);
+        requireNumber(slotConfig, "drop_chance", path + "." + slot);
+    }
+
+    private Map<String, MobRuntimeConfig> parseMobConfigs(Map<String, Object> root) throws ConfigValidationException {
+        Map<String, Object> mobs = requireMap(root, "mobs", "mobs_settings.yml");
+        Map<String, MobRuntimeConfig> parsed = new HashMap<>();
+
+        for (Map.Entry<String, Object> mobEntry : mobs.entrySet()) {
+            String mobId = mobEntry.getKey();
+            Map<String, Object> mob = requireMapValue(mobEntry.getValue(), "mobs_settings.yml " + mobId);
+            parsed.put(mobId, parseMobConfig(mobId, mob));
+        }
+
+        return Map.copyOf(parsed);
+    }
+
+    private MobRuntimeConfig parseMobConfig(String mobId, Map<String, Object> mob) throws ConfigValidationException {
+        Map<String, Object> attributes = optionalMap(mob, "attributes", "mobs_settings.yml " + mobId);
+        Map<String, Object> aggro = optionalMap(mob, "aggro", "mobs_settings.yml " + mobId);
+        Map<String, Object> sunlight = optionalMap(mob, "sunlight", "mobs_settings.yml " + mobId);
+
+        return new MobRuntimeConfig(
+                mobId,
+                optionalBoolean(mob, "enabled").orElse(true),
+                new MobRuntimeConfig.AttributeSettings(
+                        optionalDouble(attributes, "max_health"),
+                        optionalDouble(attributes, "movement_speed"),
+                        optionalDouble(attributes, "attack_damage"),
+                        optionalDouble(attributes, "follow_range")
+                ),
+                new MobRuntimeConfig.AggroSettings(
+                        optionalBoolean(aggro, "enabled").orElse(true),
+                        optionalDouble(aggro, "detection_range")
+                ),
+                new MobRuntimeConfig.SunlightSettings(
+                        optionalBoolean(sunlight, "burns_in_daylight")
+                ),
+                parseEquipment(mob, mobId)
+        );
+    }
+
+    private Map<String, MobRuntimeConfig.EquipmentSettings> parseEquipment(Map<String, Object> mob, String mobId) throws ConfigValidationException {
+        Object equipmentValue = mob.get("equipment");
+        if (equipmentValue == null) {
+            return Map.of();
+        }
+
+        Map<String, Object> equipment = requireMapValue(equipmentValue, "mobs_settings.yml " + mobId + ".equipment");
+        Map<String, MobRuntimeConfig.EquipmentSettings> parsed = new HashMap<>();
+        parseEquipmentSlot(parsed, equipment, "main_hand", "mobs_settings.yml " + mobId + ".equipment");
+        parseEquipmentSlot(parsed, equipment, "off_hand", "mobs_settings.yml " + mobId + ".equipment");
+
+        Object armorValue = equipment.get("armor");
+        if (armorValue instanceof Map<?, ?> armorMap) {
+            Map<String, Object> armor = castMap("mobs_settings.yml " + mobId + ".equipment.armor", armorMap);
+            parseEquipmentSlot(parsed, armor, "helmet", "mobs_settings.yml " + mobId + ".equipment.armor");
+            parseEquipmentSlot(parsed, armor, "chestplate", "mobs_settings.yml " + mobId + ".equipment.armor");
+            parseEquipmentSlot(parsed, armor, "leggings", "mobs_settings.yml " + mobId + ".equipment.armor");
+            parseEquipmentSlot(parsed, armor, "boots", "mobs_settings.yml " + mobId + ".equipment.armor");
+        }
+
+        return Map.copyOf(parsed);
+    }
+
+    private void parseEquipmentSlot(Map<String, MobRuntimeConfig.EquipmentSettings> parsed, Map<String, Object> equipment, String slot, String path) throws ConfigValidationException {
+        Object slotValue = equipment.get(slot);
+        if (slotValue == null) {
+            return;
+        }
+
+        Map<String, Object> slotConfig = requireMapValue(slotValue, path + "." + slot);
+        parsed.put(slot, new MobRuntimeConfig.EquipmentSettings(
+                requireString(slotConfig, "item", path + "." + slot),
+                requireNumber(slotConfig, "chance", path + "." + slot),
+                (float) requireNumber(slotConfig, "drop_chance", path + "." + slot)
+        ));
     }
 
     private void validateGlobalBlockBreaking(Map<String, Object> global) throws ConfigValidationException {
@@ -243,6 +359,14 @@ public final class DreadfallConfigManager {
         return requireMapValue(value, path + "." + key);
     }
 
+    private Map<String, Object> optionalMap(Map<String, Object> root, String key, String path) throws ConfigValidationException {
+        Object value = root.get(key);
+        if (value == null) {
+            return Map.of();
+        }
+        return requireMapValue(value, path + "." + key);
+    }
+
     private Map<String, Object> requireMapValue(Object value, String path) throws ConfigValidationException {
         if (!(value instanceof Map<?, ?> map)) {
             throw new ConfigValidationException(path + " must be a YAML object.");
@@ -272,6 +396,22 @@ public final class DreadfallConfigManager {
             return number.doubleValue();
         }
         throw new ConfigValidationException(path + "." + key + " must be a number.");
+    }
+
+    private Optional<Double> optionalDouble(Map<String, Object> root, String key) {
+        Object value = root.get(key);
+        if (value instanceof Number number) {
+            return Optional.of(number.doubleValue());
+        }
+        return Optional.empty();
+    }
+
+    private Optional<Boolean> optionalBoolean(Map<String, Object> root, String key) {
+        Object value = root.get(key);
+        if (value instanceof Boolean booleanValue) {
+            return Optional.of(booleanValue);
+        }
+        return Optional.empty();
     }
 
     private List<String> requireStringList(Map<String, Object> root, String key, String path) throws ConfigValidationException {

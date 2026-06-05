@@ -1,0 +1,187 @@
+version: 1
+
+global:
+  vanilla_drops_only: true
+
+  aggro:
+    enabled: true
+    repath_interval_ticks: 20
+    lost_target_timeout_ticks: 200
+
+  block_breaking:
+    enabled: true
+    only_when_pursuing_player: true
+    only_when_stuck: true
+    stuck_check_ticks: 40
+    not_closer_distance_epsilon: 1.5
+
+    strength_tiers:
+      very_weak:
+        break_ticks: 20
+      weak:
+        break_ticks: 60
+      normal:
+        break_ticks: 120
+      strong:
+        break_ticks: 240
+      very_strong:
+        break_ticks: 480
+
+    default_strength: normal
+
+    unbreakable_blocks:
+      - minecraft:bedrock
+      - minecraft:obsidian
+      - minecraft:crying_obsidian
+      - minecraft:command_block
+      - minecraft:chain_command_block
+      - minecraft:repeating_command_block
+      - minecraft:barrier
+      - minecraft:end_portal
+      - minecraft:end_portal_frame
+      - minecraft:nether_portal
+
+    block_overrides:
+      minecraft:dirt: very_weak
+      minecraft:sand: very_weak
+      minecraft:gravel: very_weak
+      minecraft:oak_planks: weak
+      minecraft:cobblestone: strong
+      minecraft:stone: strong
+
+  block_placing:
+    enabled: true
+    only_when_pursuing_player: true
+    only_when_stuck: true
+    cooldown_ticks: 60
+    max_attempts_per_stuck_event: 3
+    allowed_blocks:
+      - minecraft:dirt
+      - minecraft:cobblestone
+
+mobs:
+  minecraft:zombie:
+    enabled: true
+    attributes:
+      max_health: 20.0
+      movement_speed: 0.23
+      attack_damage: 3.0
+      follow_range: 64.0
+
+    aggro:
+      enabled: true
+      detection_range: 80.0
+
+    sunlight:
+      burns_in_daylight: false
+
+    equipment:
+      main_hand:
+        item: minecraft:iron_sword
+        chance: 0.20
+        drop_chance: 0.02
+      armor:
+        helmet:
+          item: minecraft:iron_helmet
+          chance: 0.20
+          drop_chance: 0.02
+        chestplate:
+          item: minecraft:iron_chestplate
+          chance: 0.12
+          drop_chance: 0.02
+        leggings:
+          item: minecraft:iron_leggings
+          chance: 0.12
+          drop_chance: 0.02
+        boots:
+          item: minecraft:iron_boots
+          chance: 0.16
+          drop_chance: 0.02
+
+    block_breaking:
+      enabled: true
+
+    block_placing:
+      enabled: true
+
+  minecraft:skeleton:
+    enabled: true
+    attributes:
+      max_health: 20.0
+      movement_speed: 0.25
+      attack_damage: 2.0
+      follow_range: 72.0
+
+    aggro:
+      enabled: true
+      detection_range: 96.0
+
+    sunlight:
+      burns_in_daylight: false
+
+    block_breaking:
+      enabled: false
+
+    block_placing:
+      enabled: false
+
+  minecraft:creeper:
+    enabled: true
+    attributes:
+      max_health: 20.0
+      movement_speed: 0.25
+      follow_range: 64.0
+
+    aggro:
+      enabled: true
+      detection_range: 80.0
+
+    explosions:
+      enabled: true
+      radius_multiplier: 1.25
+      fuse_ticks: 30
+      explode_on_death: false
+
+    block_breaking:
+      enabled: false
+
+    block_placing:
+      enabled: false
+
+  minecraft:blaze:
+    enabled: true
+    attributes:
+      max_health: 20.0
+      follow_range: 96.0
+
+    aggro:
+      enabled: true
+      detection_range: 96.0
+
+    block_breaking:
+      enabled: false
+
+    block_placing:
+      enabled: false
+
+  minecraft:ghast:
+    enabled: true
+    attributes:
+      max_health: 10.0
+      follow_range: 128.0
+
+    aggro:
+      enabled: true
+      detection_range: 128.0
+
+    explosions:
+      enabled: true
+      fireball_power_multiplier: 1.5
+      explode_on_death: false
+
+    block_breaking:
+      enabled: false
+
+    block_placing:
+      enabled: false
+

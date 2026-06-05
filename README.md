@@ -30,3 +30,21 @@ The mod jar will be generated under `build/libs/`.
   - `mobs_settings.yml`
 - Configurable mega-aggro, sunlight behavior, overworld spawns, block breaking, block placing, and explosion tuning
 
+## Configuration
+
+On first server start, Dreadfall creates:
+
+- `config/dreadfall/overworld_settings.yml`
+- `config/dreadfall/nightmare_settings.yml`
+- `config/dreadfall/mobs_settings.yml`
+
+The config loader currently validates YAML shape, supported vanilla mob ids, identifier format, required block strength tiers, protected block defaults, and the phase-one rule that explode-on-death stays disabled.
+
+## Commands
+
+Admin commands require Minecraft's built-in gamemaster command permission.
+
+- `/dreadfall status`
+- `/dreadfall reload`
+- `/ma status`
+- `/ma reload`

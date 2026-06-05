@@ -1,0 +1,19 @@
+version: 1
+enabled: false
+
+start:
+  mode: day
+  day: 7
+
+scaling:
+  max_multiplier: 4.0
+  days_to_max: 30
+  spawn_intensity_multiplier: 1.0
+  equipment_chance_multiplier: 1.0
+  block_break_speed_multiplier: 1.0
+  block_place_chance_multiplier: 1.0
+  explosion_power_multiplier: 1.0
+
+commands:
+  allow_runtime_toggle: true
+

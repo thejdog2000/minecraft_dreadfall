@@ -4,6 +4,7 @@ import com.thejdog2000.dreadfall.behavior.MobSpawnApplier;
 import com.thejdog2000.dreadfall.command.DreadfallCommands;
 import com.thejdog2000.dreadfall.config.ConfigValidationException;
 import com.thejdog2000.dreadfall.config.DreadfallConfigManager;
+import com.thejdog2000.dreadfall.spawn.OverworldSpawnRegistrar;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import org.slf4j.Logger;
@@ -27,6 +28,7 @@ public final class DreadfallMod implements ModInitializer {
             LOGGER.error("Dreadfall config validation failed. The mod will load, but gameplay systems will stay inactive until config is fixed.", exception);
         }
 
+        OverworldSpawnRegistrar.register(configManager);
         MobSpawnApplier.register(configManager);
         DreadfallCommands.register(configManager);
         LOGGER.info("Dreadfall initialized for Minecraft 26.1.2.");

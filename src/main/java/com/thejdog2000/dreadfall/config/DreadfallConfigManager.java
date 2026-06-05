@@ -75,6 +75,7 @@ public final class DreadfallConfigManager {
     private final Yaml yaml;
     private Instant lastLoadedAt;
     private Map<String, MobRuntimeConfig> mobConfigs = Map.of();
+    private List<OverworldMobSpawnConfig> overworldSpawns = List.of();
 
     public DreadfallConfigManager(Path configDirectory) {
         this.configDirectory = configDirectory;
@@ -101,6 +102,7 @@ public final class DreadfallConfigManager {
             validateOverworldSettings(overworldSettings);
             validateNightmareSettings(nightmareSettings);
             validateMobsSettings(mobsSettings);
+            overworldSpawns = parseOverworldSpawns(overworldSettings);
             mobConfigs = parseMobConfigs(mobsSettings);
 
             lastLoadedAt = Instant.now();
@@ -124,6 +126,10 @@ public final class DreadfallConfigManager {
 
     public Optional<MobRuntimeConfig> getMobConfig(String mobId) {
         return Optional.ofNullable(mobConfigs.get(mobId));
+    }
+
+    public List<OverworldMobSpawnConfig> getOverworldSpawns() {
+        return overworldSpawns;
     }
 
     private void createDefaultIfMissing(String configFile) throws IOException {
@@ -163,11 +169,58 @@ public final class DreadfallConfigManager {
                 Map<String, Object> mob = requireMapValue(mobs.get(mobId), "overworld_settings.yml " + mobId);
                 int minGroupSize = requireInteger(mob, "min_group_size", "overworld_settings.yml " + mobId);
                 int maxGroupSize = requireInteger(mob, "max_group_size", "overworld_settings.yml " + mobId);
+                requireInteger(mob, "weight", "overworld_settings.yml " + mobId);
                 if (minGroupSize < 1 || maxGroupSize < minGroupSize) {
                     throw new ConfigValidationException("Invalid group size for " + mobId + " in overworld_settings.yml.");
                 }
+                validateBiomeFilters(mob, "overworld_settings.yml " + mobId);
             }
         }
+    }
+
+    private void validateBiomeFilters(Map<String, Object> mob, String path) throws ConfigValidationException {
+        Object biomesValue = mob.get("biomes");
+        if (biomesValue == null) {
+            return;
+        }
+
+        Map<String, Object> biomes = requireMapValue(biomesValue, path + ".biomes");
+        for (String biomeId : optionalStringList(biomes, "allow")) {
+            validateIdentifier(biomeId, path + ".biomes.allow");
+        }
+        for (String biomeId : optionalStringList(biomes, "deny")) {
+            validateIdentifier(biomeId, path + ".biomes.deny");
+        }
+    }
+
+    private List<OverworldMobSpawnConfig> parseOverworldSpawns(Map<String, Object> root) throws ConfigValidationException {
+        if (!optionalBoolean(root, "enabled").orElse(true)) {
+            return List.of();
+        }
+
+        Map<String, Object> worlds = requireMap(root, "worlds", "overworld_settings.yml");
+        Map<String, Object> overworld = optionalMap(worlds, "overworld", "overworld_settings.yml.worlds");
+        if (!optionalBoolean(overworld, "enabled").orElse(true)) {
+            return List.of();
+        }
+
+        Map<String, Object> mobs = requireMap(overworld, "mobs", "overworld_settings.yml.worlds.overworld");
+        java.util.ArrayList<OverworldMobSpawnConfig> parsed = new java.util.ArrayList<>();
+        for (Map.Entry<String, Object> mobEntry : mobs.entrySet()) {
+            String mobId = mobEntry.getKey();
+            Map<String, Object> mob = requireMapValue(mobEntry.getValue(), "overworld_settings.yml " + mobId);
+            Map<String, Object> biomes = optionalMap(mob, "biomes", "overworld_settings.yml " + mobId);
+            parsed.add(new OverworldMobSpawnConfig(
+                    mobId,
+                    optionalBoolean(mob, "enabled").orElse(true),
+                    requireInteger(mob, "weight", "overworld_settings.yml " + mobId),
+                    requireInteger(mob, "min_group_size", "overworld_settings.yml " + mobId),
+                    requireInteger(mob, "max_group_size", "overworld_settings.yml " + mobId),
+                    optionalStringList(biomes, "allow"),
+                    optionalStringList(biomes, "deny")
+            ));
+        }
+        return List.copyOf(parsed);
     }
 
     private void validateNightmareSettings(Map<String, Object> root) throws ConfigValidationException {
@@ -441,6 +494,24 @@ public final class DreadfallConfigManager {
             }
         }
 
+        @SuppressWarnings("unchecked")
+        List<String> strings = (List<String>) list;
+        return strings;
+    }
+
+    private List<String> optionalStringList(Map<String, Object> root, String key) throws ConfigValidationException {
+        Object value = root.get(key);
+        if (value == null) {
+            return List.of();
+        }
+        if (!(value instanceof List<?> list)) {
+            throw new ConfigValidationException(key + " must be a list.");
+        }
+        for (Object item : list) {
+            if (!(item instanceof String)) {
+                throw new ConfigValidationException(key + " must contain only strings.");
+            }
+        }
         @SuppressWarnings("unchecked")
         List<String> strings = (List<String>) list;
         return strings;

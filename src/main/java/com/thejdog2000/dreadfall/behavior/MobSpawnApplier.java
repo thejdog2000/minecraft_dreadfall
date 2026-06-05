@@ -4,15 +4,18 @@ import com.thejdog2000.dreadfall.DreadfallMod;
 import com.thejdog2000.dreadfall.config.DreadfallConfigManager;
 import com.thejdog2000.dreadfall.config.MobRuntimeConfig;
 import com.thejdog2000.dreadfall.mixin.CreeperAccessor;
+import com.thejdog2000.dreadfall.mixin.LargeFireballAccessor;
 import net.fabricmc.fabric.api.event.lifecycle.v1.EntityLoadData;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Creeper;
+import net.minecraft.world.entity.projectile.hurtingprojectile.LargeFireball;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
@@ -38,6 +41,10 @@ public final class MobSpawnApplier {
     public static void register(DreadfallConfigManager configManager) {
         MobSpawnApplier applier = new MobSpawnApplier(configManager);
         ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
+            if (entity instanceof LargeFireball fireball) {
+                applier.applyLargeFireball(fireball);
+                return;
+            }
             if (!(entity instanceof Mob mob)) {
                 return;
             }
@@ -46,6 +53,22 @@ public final class MobSpawnApplier {
             }
             applier.apply(mob);
         });
+    }
+
+    private void applyLargeFireball(LargeFireball fireball) {
+        Entity owner = fireball.getOwner();
+        if (owner == null) {
+            return;
+        }
+
+        String ownerId = BuiltInRegistries.ENTITY_TYPE.getKey(owner.getType()).toString();
+        configManager.getMobConfig(ownerId)
+                .filter(MobRuntimeConfig::enabled)
+                .filter(config -> config.explosions().enabled())
+                .flatMap(config -> config.explosions().fireballPowerMultiplier())
+                .filter(multiplier -> multiplier > 0.0)
+                .map(multiplier -> Math.max(1, (int) Math.round(multiplier)))
+                .ifPresent(power -> ((LargeFireballAccessor) fireball).dreadfall$setExplosionPower(power));
     }
 
     private void apply(Mob mob) {

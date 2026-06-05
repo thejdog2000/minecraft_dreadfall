@@ -2,7 +2,7 @@
 
 All notable changes to Dreadfall will be documented here.
 
-## 0.1.0 - Unreleased
+## 0.1.0 - 2026-06-05
 
 ### Added
 
@@ -26,4 +26,3 @@ All notable changes to Dreadfall will be documented here.
 - Nightmare mode config exists, but runtime scaling is not implemented yet.
 - Custom mobs are not supported yet.
 - Overworld spawn-table changes require restart.
-

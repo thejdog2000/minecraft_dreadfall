@@ -78,6 +78,7 @@ public final class DreadfallConfigManager {
     private List<OverworldMobSpawnConfig> overworldSpawns = List.of();
     private BlockBreakRuntimeConfig blockBreaking = new BlockBreakRuntimeConfig(false, 40, 1.5, "normal", Map.of("normal", 120), Set.of(), Map.of());
     private BlockPlaceRuntimeConfig blockPlacing = new BlockPlaceRuntimeConfig(false, 60, 3, List.of("minecraft:dirt"));
+    private boolean debugLoggingEnabled;
 
     public DreadfallConfigManager(Path configDirectory) {
         this.configDirectory = configDirectory;
@@ -107,10 +108,12 @@ public final class DreadfallConfigManager {
             overworldSpawns = parseOverworldSpawns(overworldSettings);
             blockBreaking = parseBlockBreaking(mobsSettings);
             blockPlacing = parseBlockPlacing(mobsSettings);
+            debugLoggingEnabled = parseDebugLogging(mobsSettings);
             mobConfigs = parseMobConfigs(mobsSettings);
 
             lastLoadedAt = Instant.now();
-            DreadfallMod.LOGGER.info("Loaded Dreadfall configs from {}.", configDirectory);
+            DreadfallMod.LOGGER.info("Loaded Dreadfall configs from {}. mobs={}, overworld_spawns={}, block_breaking={}, block_placing={}, debug={}",
+                    configDirectory, mobConfigs.size(), overworldSpawns.size(), blockBreaking.enabled(), blockPlacing.enabled(), debugLoggingEnabled);
         } catch (IOException exception) {
             throw new ConfigValidationException("Could not load Dreadfall configs: " + exception.getMessage(), exception);
         }
@@ -142,6 +145,10 @@ public final class DreadfallConfigManager {
 
     public BlockPlaceRuntimeConfig getBlockPlacing() {
         return blockPlacing;
+    }
+
+    public boolean isDebugLoggingEnabled() {
+        return debugLoggingEnabled;
     }
 
     private void createDefaultIfMissing(String configFile) throws IOException {
@@ -253,7 +260,25 @@ public final class DreadfallConfigManager {
             validateMobId(mobId, "mobs_settings.yml mobs");
             Map<String, Object> mob = requireMapValue(mobEntry.getValue(), "mobs_settings.yml " + mobId);
             validateExplosionSettings(mob, "mobs_settings.yml " + mobId);
+            validateProjectileSettings(mob, "mobs_settings.yml " + mobId);
             validateEquipmentSettings(mob, "mobs_settings.yml " + mobId);
+        }
+    }
+
+    private void validateProjectileSettings(Map<String, Object> mob, String path) throws ConfigValidationException {
+        Map<String, Object> projectiles = optionalMap(mob, "projectiles", path);
+        if (projectiles.isEmpty()) {
+            return;
+        }
+
+        Map<String, Object> explosiveArrows = optionalMap(projectiles, "explosive_arrows", path + ".projectiles");
+        if (explosiveArrows.isEmpty()) {
+            return;
+        }
+
+        double power = requireNumber(explosiveArrows, "power", path + ".projectiles.explosive_arrows");
+        if (power < 0.0) {
+            throw new ConfigValidationException(path + ".projectiles.explosive_arrows.power must be >= 0.");
         }
     }
 
@@ -346,11 +371,18 @@ public final class DreadfallConfigManager {
         );
     }
 
+    private boolean parseDebugLogging(Map<String, Object> root) throws ConfigValidationException {
+        Map<String, Object> global = requireMap(root, "global", "mobs_settings.yml");
+        Map<String, Object> debug = optionalMap(global, "debug", "mobs_settings.yml global");
+        return optionalBoolean(debug, "enabled").orElse(false);
+    }
+
     private MobRuntimeConfig parseMobConfig(String mobId, Map<String, Object> mob) throws ConfigValidationException {
         Map<String, Object> attributes = optionalMap(mob, "attributes", "mobs_settings.yml " + mobId);
         Map<String, Object> aggro = optionalMap(mob, "aggro", "mobs_settings.yml " + mobId);
         Map<String, Object> sunlight = optionalMap(mob, "sunlight", "mobs_settings.yml " + mobId);
         Map<String, Object> explosions = optionalMap(mob, "explosions", "mobs_settings.yml " + mobId);
+        Map<String, Object> projectiles = optionalMap(mob, "projectiles", "mobs_settings.yml " + mobId);
         Map<String, Object> blockBreaking = optionalMap(mob, "block_breaking", "mobs_settings.yml " + mobId);
         Map<String, Object> blockPlacing = optionalMap(mob, "block_placing", "mobs_settings.yml " + mobId);
 
@@ -376,9 +408,22 @@ public final class DreadfallConfigManager {
                         optionalInteger(explosions, "fuse_ticks"),
                         optionalDouble(explosions, "fireball_power_multiplier")
                 ),
+                parseProjectileSettings(projectiles, mobId),
                 optionalBoolean(blockBreaking, "enabled").orElse(false),
                 optionalBoolean(blockPlacing, "enabled").orElse(false),
                 parseEquipment(mob, mobId)
+        );
+    }
+
+    private MobRuntimeConfig.ProjectileSettings parseProjectileSettings(Map<String, Object> projectiles, String mobId) throws ConfigValidationException {
+        Map<String, Object> explosiveArrows = optionalMap(projectiles, "explosive_arrows", "mobs_settings.yml " + mobId + ".projectiles");
+        return new MobRuntimeConfig.ProjectileSettings(
+                new MobRuntimeConfig.ExplosiveArrowSettings(
+                        optionalBoolean(explosiveArrows, "enabled").orElse(false),
+                        optionalDouble(explosiveArrows, "power").orElse(0.0),
+                        optionalBoolean(explosiveArrows, "causes_fire").orElse(false),
+                        optionalBoolean(explosiveArrows, "damages_blocks").orElse(true)
+                )
         );
     }
 

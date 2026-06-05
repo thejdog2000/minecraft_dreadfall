@@ -68,7 +68,12 @@ public final class MobSpawnApplier {
                 .flatMap(config -> config.explosions().fireballPowerMultiplier())
                 .filter(multiplier -> multiplier > 0.0)
                 .map(multiplier -> Math.max(1, (int) Math.round(multiplier)))
-                .ifPresent(power -> ((LargeFireballAccessor) fireball).dreadfall$setExplosionPower(power));
+                .ifPresent(power -> {
+                    ((LargeFireballAccessor) fireball).dreadfall$setExplosionPower(power);
+                    if (configManager.isDebugLoggingEnabled()) {
+                        DreadfallMod.LOGGER.info("Applied large fireball power={} owner={} entity_id={}", power, ownerId, fireball.getId());
+                    }
+                });
     }
 
     private void apply(Mob mob) {
@@ -86,6 +91,10 @@ public final class MobSpawnApplier {
         applyAttributes(mob, config);
         applyEquipment(mob, config);
         applyExplosions(mob, config);
+        if (configManager.isDebugLoggingEnabled()) {
+            DreadfallMod.LOGGER.info("Applied mob settings mob={} entity_id={} block_breaking={} block_placing={}",
+                    mobId, mob.getId(), config.blockBreakingEnabled(), config.blockPlacingEnabled());
+        }
     }
 
     private void applyAttributes(Mob mob, MobRuntimeConfig config) {
@@ -138,6 +147,10 @@ public final class MobSpawnApplier {
 
         mob.setItemSlot(slot, new ItemStack(item.get()));
         mob.setDropChance(slot, equipment.dropChance());
+        if (configManager.isDebugLoggingEnabled()) {
+            DreadfallMod.LOGGER.info("Equipped mob entity_id={} slot={} item={} drop_chance={}",
+                    mob.getId(), slot.getName(), equipment.itemId(), equipment.dropChance());
+        }
     }
 
     private void applyExplosions(Mob mob, MobRuntimeConfig config) {
@@ -149,11 +162,21 @@ public final class MobSpawnApplier {
             CreeperAccessor accessor = (CreeperAccessor) mob;
             config.explosions().fuseTicks()
                     .filter(fuseTicks -> fuseTicks > 0)
-                    .ifPresent(accessor::dreadfall$setMaxSwell);
+                    .ifPresent(fuseTicks -> {
+                        accessor.dreadfall$setMaxSwell(fuseTicks);
+                        if (configManager.isDebugLoggingEnabled()) {
+                            DreadfallMod.LOGGER.info("Applied creeper fuse_ticks={} entity_id={}", fuseTicks, mob.getId());
+                        }
+                    });
             config.explosions().radiusMultiplier()
                     .filter(multiplier -> multiplier > 0.0)
                     .map(multiplier -> Math.max(1, (int) Math.round(3.0 * multiplier)))
-                    .ifPresent(accessor::dreadfall$setExplosionRadius);
+                    .ifPresent(radius -> {
+                        accessor.dreadfall$setExplosionRadius(radius);
+                        if (configManager.isDebugLoggingEnabled()) {
+                            DreadfallMod.LOGGER.info("Applied creeper explosion_radius={} entity_id={}", radius, mob.getId());
+                        }
+                    });
         }
     }
 }

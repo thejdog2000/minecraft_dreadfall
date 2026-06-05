@@ -40,10 +40,12 @@ Last updated: 2026-06-05
 - Explosion tuning:
   - creeper fuse and explosion radius can be configured.
   - ghast-owned large fireball explosion power can be configured.
+  - skeleton-owned arrows can explode on impact by default.
   - explode-on-death is intentionally not implemented.
 - Overworld spawn injection:
   - configured mobs are added to Overworld biome spawn tables on startup.
   - biome allow/deny lists are supported.
+  - ghasts are enabled in the Overworld default config.
 - Block breaking foundation:
   - configured mobs only attempt block breaking while targeting a player.
   - mobs must be not getting closer to the player over the configured stuck interval.
@@ -64,6 +66,7 @@ Last updated: 2026-06-05
 - `/summon creeper` works with creeper accessor mixin active.
 - `/summon ghast` works with large fireball accessor mixin active.
 - Overworld spawn registration logs and Fabric biome modification logs appear at startup.
+- Optional debug logging can be enabled with `global.debug.enabled`.
 
 ## Known Limitations
 
@@ -84,4 +87,3 @@ Last updated: 2026-06-05
 4. Implement skeleton daylight override if needed.
 5. Add first nightmare scaling pass for spawn intensity and behavior multipliers.
 6. Add better debug logging toggles for stuck detection and block interaction decisions.
-

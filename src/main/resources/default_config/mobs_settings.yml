@@ -3,6 +3,9 @@ version: 1
 global:
   vanilla_drops_only: true
 
+  debug:
+    enabled: false
+
   aggro:
     enabled: true
     repath_interval_ticks: 20
@@ -119,6 +122,13 @@ mobs:
     sunlight:
       burns_in_daylight: false
 
+    projectiles:
+      explosive_arrows:
+        enabled: true
+        power: 2.0
+        causes_fire: false
+        damages_blocks: true
+
     block_breaking:
       enabled: false
 
@@ -184,4 +194,3 @@ mobs:
 
     block_placing:
       enabled: false
-

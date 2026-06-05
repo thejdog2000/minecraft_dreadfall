@@ -10,6 +10,7 @@ public record MobRuntimeConfig(
         AggroSettings aggro,
         SunlightSettings sunlight,
         ExplosionSettings explosions,
+        ProjectileSettings projectiles,
         boolean blockBreakingEnabled,
         boolean blockPlacingEnabled,
         Map<String, EquipmentSettings> equipment
@@ -42,6 +43,19 @@ public record MobRuntimeConfig(
             Optional<Double> radiusMultiplier,
             Optional<Integer> fuseTicks,
             Optional<Double> fireballPowerMultiplier
+    ) {
+    }
+
+    public record ProjectileSettings(
+            ExplosiveArrowSettings explosiveArrows
+    ) {
+    }
+
+    public record ExplosiveArrowSettings(
+            boolean enabled,
+            double power,
+            boolean causesFire,
+            boolean damagesBlocks
     ) {
     }
 

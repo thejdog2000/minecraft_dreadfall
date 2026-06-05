@@ -4,6 +4,7 @@ import com.thejdog2000.dreadfall.config.BlockBreakRuntimeConfig;
 import com.thejdog2000.dreadfall.config.BlockPlaceRuntimeConfig;
 import com.thejdog2000.dreadfall.config.DreadfallConfigManager;
 import com.thejdog2000.dreadfall.config.MobRuntimeConfig;
+import com.thejdog2000.dreadfall.DreadfallMod;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -74,6 +75,9 @@ public final class MobBlockPlacer {
 
         if (!notGettingCloser) {
             state.attemptsInStuckEvent = 0;
+            if (configManager.isDebugLoggingEnabled()) {
+                DreadfallMod.LOGGER.info("Block place skipped; mob is closing distance entity_id={} distance_sqr={}", mob.getId(), distance);
+            }
             return;
         }
         if (gameTime - state.lastPlaceTick < blockPlacing.cooldownTicks()) {
@@ -85,6 +89,9 @@ public final class MobBlockPlacer {
 
         Optional<BlockPos> candidate = findPlacementCandidate(level, mob, target);
         if (candidate.isEmpty()) {
+            if (configManager.isDebugLoggingEnabled()) {
+                DreadfallMod.LOGGER.info("Block place skipped; no eligible candidate entity_id={} mob={} target={}", mob.getId(), mobId, target.getUUID());
+            }
             return;
         }
 
@@ -100,6 +107,10 @@ public final class MobBlockPlacer {
         if (level.setBlock(candidate.get(), block.get().defaultBlockState(), 3)) {
             state.lastPlaceTick = gameTime;
             state.attemptsInStuckEvent++;
+            if (configManager.isDebugLoggingEnabled()) {
+                DreadfallMod.LOGGER.info("Mob placed block entity_id={} mob={} block={} pos={} attempts={}/{}",
+                        mob.getId(), mobId, blockPlacing.primaryBlockId(), candidate.get(), state.attemptsInStuckEvent, blockPlacing.maxAttemptsPerStuckEvent());
+            }
         }
     }
 
@@ -145,4 +156,3 @@ public final class MobBlockPlacer {
         }
     }
 }
-

@@ -3,6 +3,7 @@ package com.thejdog2000.dreadfall.behavior;
 import com.thejdog2000.dreadfall.config.BlockBreakRuntimeConfig;
 import com.thejdog2000.dreadfall.config.DreadfallConfigManager;
 import com.thejdog2000.dreadfall.config.MobRuntimeConfig;
+import com.thejdog2000.dreadfall.DreadfallMod;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -71,12 +72,18 @@ public final class MobBlockBreaker {
 
         if (!notGettingCloser) {
             state.clearProgress();
+            if (configManager.isDebugLoggingEnabled()) {
+                DreadfallMod.LOGGER.info("Block break skipped; mob is closing distance entity_id={} distance_sqr={}", mob.getId(), distance);
+            }
             return;
         }
 
         Optional<BlockPos> candidate = findBreakCandidate(level, mob, target, blockBreaking);
         if (candidate.isEmpty()) {
             state.clearProgress();
+            if (configManager.isDebugLoggingEnabled()) {
+                DreadfallMod.LOGGER.info("Block break skipped; no eligible candidate entity_id={} mob={} target={}", mob.getId(), mobId, target.getUUID());
+            }
             return;
         }
 
@@ -95,7 +102,13 @@ public final class MobBlockBreaker {
         if (state.progressTicks >= requiredTicks) {
             level.destroyBlockProgress(mob.getId(), blockPos, -1);
             level.destroyBlock(blockPos, true, mob, 512);
+            if (configManager.isDebugLoggingEnabled()) {
+                DreadfallMod.LOGGER.info("Mob broke block entity_id={} mob={} block={} pos={} required_ticks={}", mob.getId(), mobId, blockId, blockPos, requiredTicks);
+            }
             state.clearProgress();
+        } else if (configManager.isDebugLoggingEnabled()) {
+            DreadfallMod.LOGGER.info("Mob damaging block entity_id={} mob={} block={} pos={} progress_ticks={} required_ticks={}",
+                    mob.getId(), mobId, blockId, blockPos, state.progressTicks, requiredTicks);
         }
     }
 
@@ -147,4 +160,3 @@ public final class MobBlockBreaker {
         }
     }
 }
-

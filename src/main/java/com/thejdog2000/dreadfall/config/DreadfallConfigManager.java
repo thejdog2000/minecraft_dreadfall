@@ -77,6 +77,7 @@ public final class DreadfallConfigManager {
     private Map<String, MobRuntimeConfig> mobConfigs = Map.of();
     private List<OverworldMobSpawnConfig> overworldSpawns = List.of();
     private BlockBreakRuntimeConfig blockBreaking = new BlockBreakRuntimeConfig(false, 40, 1.5, "normal", Map.of("normal", 120), Set.of(), Map.of());
+    private BlockPlaceRuntimeConfig blockPlacing = new BlockPlaceRuntimeConfig(false, 60, 3, List.of("minecraft:dirt"));
 
     public DreadfallConfigManager(Path configDirectory) {
         this.configDirectory = configDirectory;
@@ -105,6 +106,7 @@ public final class DreadfallConfigManager {
             validateMobsSettings(mobsSettings);
             overworldSpawns = parseOverworldSpawns(overworldSettings);
             blockBreaking = parseBlockBreaking(mobsSettings);
+            blockPlacing = parseBlockPlacing(mobsSettings);
             mobConfigs = parseMobConfigs(mobsSettings);
 
             lastLoadedAt = Instant.now();
@@ -136,6 +138,10 @@ public final class DreadfallConfigManager {
 
     public BlockBreakRuntimeConfig getBlockBreaking() {
         return blockBreaking;
+    }
+
+    public BlockPlaceRuntimeConfig getBlockPlacing() {
+        return blockPlacing;
     }
 
     private void createDefaultIfMissing(String configFile) throws IOException {
@@ -321,6 +327,22 @@ public final class DreadfallConfigManager {
                 Map.copyOf(breakTicks),
                 Set.copyOf(requireStringList(blockBreaking, "unbreakable_blocks", "mobs_settings.yml global.block_breaking")),
                 Map.copyOf(overrides)
+        );
+    }
+
+    private BlockPlaceRuntimeConfig parseBlockPlacing(Map<String, Object> root) throws ConfigValidationException {
+        Map<String, Object> global = requireMap(root, "global", "mobs_settings.yml");
+        Map<String, Object> blockPlacing = requireMap(global, "block_placing", "mobs_settings.yml global");
+        List<String> allowedBlocks = requireStringList(blockPlacing, "allowed_blocks", "mobs_settings.yml global.block_placing");
+        for (String blockId : allowedBlocks) {
+            validateIdentifier(blockId, "mobs_settings.yml global.block_placing.allowed_blocks");
+        }
+
+        return new BlockPlaceRuntimeConfig(
+                optionalBoolean(blockPlacing, "enabled").orElse(false),
+                requireInteger(blockPlacing, "cooldown_ticks", "mobs_settings.yml global.block_placing"),
+                requireInteger(blockPlacing, "max_attempts_per_stuck_event", "mobs_settings.yml global.block_placing"),
+                List.copyOf(allowedBlocks)
         );
     }
 

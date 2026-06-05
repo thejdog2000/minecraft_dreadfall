@@ -2,6 +2,7 @@ package com.thejdog2000.dreadfall;
 
 import com.thejdog2000.dreadfall.behavior.MobSpawnApplier;
 import com.thejdog2000.dreadfall.behavior.MobBlockBreaker;
+import com.thejdog2000.dreadfall.behavior.MobBlockPlacer;
 import com.thejdog2000.dreadfall.command.DreadfallCommands;
 import com.thejdog2000.dreadfall.config.ConfigValidationException;
 import com.thejdog2000.dreadfall.config.DreadfallConfigManager;
@@ -32,6 +33,7 @@ public final class DreadfallMod implements ModInitializer {
         OverworldSpawnRegistrar.register(configManager);
         MobSpawnApplier.register(configManager);
         MobBlockBreaker.register(configManager);
+        MobBlockPlacer.register(configManager);
         DreadfallCommands.register(configManager);
         LOGGER.info("Dreadfall initialized for Minecraft 26.1.2.");
     }

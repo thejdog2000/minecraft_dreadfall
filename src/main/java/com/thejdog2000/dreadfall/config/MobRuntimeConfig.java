@@ -10,6 +10,8 @@ public record MobRuntimeConfig(
         AggroSettings aggro,
         SunlightSettings sunlight,
         ExplosionSettings explosions,
+        boolean blockBreakingEnabled,
+        boolean blockPlacingEnabled,
         Map<String, EquipmentSettings> equipment
 ) {
     public Optional<EquipmentSettings> equipmentFor(String slot) {

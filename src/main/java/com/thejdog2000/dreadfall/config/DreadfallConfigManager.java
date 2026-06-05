@@ -76,6 +76,7 @@ public final class DreadfallConfigManager {
     private Instant lastLoadedAt;
     private Map<String, MobRuntimeConfig> mobConfigs = Map.of();
     private List<OverworldMobSpawnConfig> overworldSpawns = List.of();
+    private BlockBreakRuntimeConfig blockBreaking = new BlockBreakRuntimeConfig(false, 40, 1.5, "normal", Map.of("normal", 120), Set.of(), Map.of());
 
     public DreadfallConfigManager(Path configDirectory) {
         this.configDirectory = configDirectory;
@@ -103,6 +104,7 @@ public final class DreadfallConfigManager {
             validateNightmareSettings(nightmareSettings);
             validateMobsSettings(mobsSettings);
             overworldSpawns = parseOverworldSpawns(overworldSettings);
+            blockBreaking = parseBlockBreaking(mobsSettings);
             mobConfigs = parseMobConfigs(mobsSettings);
 
             lastLoadedAt = Instant.now();
@@ -130,6 +132,10 @@ public final class DreadfallConfigManager {
 
     public List<OverworldMobSpawnConfig> getOverworldSpawns() {
         return overworldSpawns;
+    }
+
+    public BlockBreakRuntimeConfig getBlockBreaking() {
+        return blockBreaking;
     }
 
     private void createDefaultIfMissing(String configFile) throws IOException {
@@ -290,11 +296,41 @@ public final class DreadfallConfigManager {
         return Map.copyOf(parsed);
     }
 
+    private BlockBreakRuntimeConfig parseBlockBreaking(Map<String, Object> root) throws ConfigValidationException {
+        Map<String, Object> global = requireMap(root, "global", "mobs_settings.yml");
+        Map<String, Object> blockBreaking = requireMap(global, "block_breaking", "mobs_settings.yml global");
+        Map<String, Object> strengthTiers = requireMap(blockBreaking, "strength_tiers", "mobs_settings.yml global.block_breaking");
+
+        Map<String, Integer> breakTicks = new HashMap<>();
+        for (String tier : strengthTiers.keySet()) {
+            Map<String, Object> tierSettings = requireMapValue(strengthTiers.get(tier), "mobs_settings.yml strength_tiers." + tier);
+            breakTicks.put(tier, requireInteger(tierSettings, "break_ticks", "mobs_settings.yml strength_tiers." + tier));
+        }
+
+        Map<String, String> overrides = new HashMap<>();
+        Map<String, Object> blockOverrides = requireMap(blockBreaking, "block_overrides", "mobs_settings.yml global.block_breaking");
+        for (Map.Entry<String, Object> override : blockOverrides.entrySet()) {
+            overrides.put(override.getKey(), String.valueOf(override.getValue()));
+        }
+
+        return new BlockBreakRuntimeConfig(
+                optionalBoolean(blockBreaking, "enabled").orElse(false),
+                requireInteger(blockBreaking, "stuck_check_ticks", "mobs_settings.yml global.block_breaking"),
+                requireNumber(blockBreaking, "not_closer_distance_epsilon", "mobs_settings.yml global.block_breaking"),
+                requireString(blockBreaking, "default_strength", "mobs_settings.yml global.block_breaking"),
+                Map.copyOf(breakTicks),
+                Set.copyOf(requireStringList(blockBreaking, "unbreakable_blocks", "mobs_settings.yml global.block_breaking")),
+                Map.copyOf(overrides)
+        );
+    }
+
     private MobRuntimeConfig parseMobConfig(String mobId, Map<String, Object> mob) throws ConfigValidationException {
         Map<String, Object> attributes = optionalMap(mob, "attributes", "mobs_settings.yml " + mobId);
         Map<String, Object> aggro = optionalMap(mob, "aggro", "mobs_settings.yml " + mobId);
         Map<String, Object> sunlight = optionalMap(mob, "sunlight", "mobs_settings.yml " + mobId);
         Map<String, Object> explosions = optionalMap(mob, "explosions", "mobs_settings.yml " + mobId);
+        Map<String, Object> blockBreaking = optionalMap(mob, "block_breaking", "mobs_settings.yml " + mobId);
+        Map<String, Object> blockPlacing = optionalMap(mob, "block_placing", "mobs_settings.yml " + mobId);
 
         return new MobRuntimeConfig(
                 mobId,
@@ -318,6 +354,8 @@ public final class DreadfallConfigManager {
                         optionalInteger(explosions, "fuse_ticks"),
                         optionalDouble(explosions, "fireball_power_multiplier")
                 ),
+                optionalBoolean(blockBreaking, "enabled").orElse(false),
+                optionalBoolean(blockPlacing, "enabled").orElse(false),
                 parseEquipment(mob, mobId)
         );
     }

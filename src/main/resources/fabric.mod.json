@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "dreadfall",
+  "version": "${version}",
+  "name": "Dreadfall",
+  "description": "Configurable hostile mob escalation for private Minecraft survival challenge servers.",
+  "authors": [
+    "thejdog2000"
+  ],
+  "contact": {
+    "sources": "https://github.com/thejdog2000/minecraft_dreadfall"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.thejdog2000.dreadfall.DreadfallMod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.2",
+    "minecraft": "26.1.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
+

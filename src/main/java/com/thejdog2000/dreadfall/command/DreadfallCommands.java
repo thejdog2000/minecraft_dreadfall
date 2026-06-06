@@ -42,7 +42,7 @@ public final class DreadfallCommands {
                 .then(Commands.literal("status")
                         .executes(context -> status(context.getSource(), configManager)))
                 .then(Commands.literal("testspawn")
-                        .then(Commands.argument("mob", StringArgumentType.word())
+                        .then(Commands.argument("mob", StringArgumentType.greedyString())
                                 .executes(context -> testSpawn(
                                         context.getSource(),
                                         configManager,

@@ -2,6 +2,7 @@
 build/
 run/
 out/
+install-kit/
 
 *.class
 *.log
@@ -11,4 +12,3 @@ out/
 *.iml
 *.ipr
 *.iws
-

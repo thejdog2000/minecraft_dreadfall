@@ -55,6 +55,10 @@ public final class MobSpawnApplier {
         });
     }
 
+    public static void applyConfiguredSettings(DreadfallConfigManager configManager, Mob mob) {
+        new MobSpawnApplier(configManager).apply(mob);
+    }
+
     private void applyLargeFireball(LargeFireball fireball) {
         Entity owner = fireball.getOwner();
         if (owner == null) {
@@ -76,7 +80,7 @@ public final class MobSpawnApplier {
                 });
     }
 
-    private void apply(Mob mob) {
+    public void apply(Mob mob) {
         String mobId = BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType()).toString();
         Optional<MobRuntimeConfig> optionalConfig = configManager.getMobConfig(mobId);
         if (optionalConfig.isEmpty()) {

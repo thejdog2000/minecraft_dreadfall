@@ -135,6 +135,10 @@ public final class DreadfallConfigManager {
         return Optional.ofNullable(mobConfigs.get(mobId));
     }
 
+    public int getMobConfigCount() {
+        return mobConfigs.size();
+    }
+
     public List<OverworldMobSpawnConfig> getOverworldSpawns() {
         return overworldSpawns;
     }

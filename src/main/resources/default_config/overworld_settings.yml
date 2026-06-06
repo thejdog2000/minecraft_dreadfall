@@ -51,7 +51,7 @@ worlds:
 
       minecraft:ghast:
         enabled: true
-        weight: 4
+        weight: 40
         min_group_size: 1
         max_group_size: 1
         min_y: 80

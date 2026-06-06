@@ -68,6 +68,11 @@ public final class DreadfallCommands {
         source.sendSuccess(() -> Component.literal("Dreadfall debug logging: " + configManager.isDebugLoggingEnabled()), false);
         source.sendSuccess(() -> Component.literal("Dreadfall configured mob settings: " + configManager.getMobConfigCount()), false);
         source.sendSuccess(() -> Component.literal("Dreadfall configured overworld spawns: " + configManager.getOverworldSpawns().size()), false);
+        source.sendSuccess(() -> Component.literal("Dreadfall active overworld spawning: "
+                + configManager.getOverworldSpawnRuntime().enabled()
+                + " cap=" + configManager.getOverworldSpawnRuntime().globalSpawnCap()
+                + " per_player=" + configManager.getOverworldSpawnRuntime().perPlayerMobCap()
+                + " interval=" + configManager.getOverworldSpawnRuntime().pulseIntervalTicks()), false);
         source.sendSuccess(() -> Component.literal("Dreadfall last loaded: " + loaded), false);
         return 1;
     }

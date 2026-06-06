@@ -4,8 +4,16 @@ enabled: true
 worlds:
   overworld:
     enabled: true
-    spawn_pacing_multiplier: 1.0
-    global_spawn_cap: 90
+    spawn_pacing_multiplier: 2.5
+    global_spawn_cap: 160
+
+    active_spawning:
+      enabled: true
+      per_player_mob_cap: 45
+      pulse_interval_ticks: 60
+      spawn_attempts_per_player: 12
+      min_spawn_radius: 22
+      max_spawn_radius: 58
 
     mobs:
       minecraft:zombie:

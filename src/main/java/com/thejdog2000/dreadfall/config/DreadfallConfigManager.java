@@ -76,6 +76,7 @@ public final class DreadfallConfigManager {
     private Instant lastLoadedAt;
     private Map<String, MobRuntimeConfig> mobConfigs = Map.of();
     private List<OverworldMobSpawnConfig> overworldSpawns = List.of();
+    private OverworldSpawnRuntimeConfig overworldSpawnRuntime = new OverworldSpawnRuntimeConfig(false, 1.0, 90, 30, 100, 6, 24, 56);
     private BlockBreakRuntimeConfig blockBreaking = new BlockBreakRuntimeConfig(false, 40, 1.5, "normal", Map.of("normal", 120), Set.of(), Map.of());
     private BlockPlaceRuntimeConfig blockPlacing = new BlockPlaceRuntimeConfig(false, 60, 3, List.of("minecraft:dirt"));
     private boolean debugLoggingEnabled;
@@ -106,6 +107,7 @@ public final class DreadfallConfigManager {
             validateNightmareSettings(nightmareSettings);
             validateMobsSettings(mobsSettings);
             overworldSpawns = parseOverworldSpawns(overworldSettings);
+            overworldSpawnRuntime = parseOverworldSpawnRuntime(overworldSettings);
             blockBreaking = parseBlockBreaking(mobsSettings);
             blockPlacing = parseBlockPlacing(mobsSettings);
             debugLoggingEnabled = parseDebugLogging(mobsSettings);
@@ -141,6 +143,10 @@ public final class DreadfallConfigManager {
 
     public List<OverworldMobSpawnConfig> getOverworldSpawns() {
         return overworldSpawns;
+    }
+
+    public OverworldSpawnRuntimeConfig getOverworldSpawnRuntime() {
+        return overworldSpawnRuntime;
     }
 
     public BlockBreakRuntimeConfig getBlockBreaking() {
@@ -186,15 +192,30 @@ public final class DreadfallConfigManager {
         Map<String, Object> worlds = requireMap(root, "worlds", "overworld_settings.yml");
         for (Map.Entry<String, Object> worldEntry : worlds.entrySet()) {
             Map<String, Object> world = requireMapValue(worldEntry.getValue(), "overworld_settings.yml worlds." + worldEntry.getKey());
+            Map<String, Object> activeSpawning = optionalMap(world, "active_spawning", "overworld_settings.yml worlds." + worldEntry.getKey());
+            if (optionalInteger(activeSpawning, "pulse_interval_ticks").orElse(100) < 1) {
+                throw new ConfigValidationException("active_spawning.pulse_interval_ticks must be at least 1.");
+            }
+            if (optionalInteger(activeSpawning, "spawn_attempts_per_player").orElse(6) < 1) {
+                throw new ConfigValidationException("active_spawning.spawn_attempts_per_player must be at least 1.");
+            }
+            if (optionalInteger(activeSpawning, "per_player_mob_cap").orElse(30) < 1) {
+                throw new ConfigValidationException("active_spawning.per_player_mob_cap must be at least 1.");
+            }
             Map<String, Object> mobs = requireMap(world, "mobs", "overworld_settings.yml worlds." + worldEntry.getKey());
             for (String mobId : mobs.keySet()) {
                 validateMobId(mobId, "overworld_settings.yml worlds." + worldEntry.getKey() + ".mobs");
                 Map<String, Object> mob = requireMapValue(mobs.get(mobId), "overworld_settings.yml " + mobId);
                 int minGroupSize = requireInteger(mob, "min_group_size", "overworld_settings.yml " + mobId);
                 int maxGroupSize = requireInteger(mob, "max_group_size", "overworld_settings.yml " + mobId);
+                int minY = requireInteger(mob, "min_y", "overworld_settings.yml " + mobId);
+                int maxY = requireInteger(mob, "max_y", "overworld_settings.yml " + mobId);
                 requireInteger(mob, "weight", "overworld_settings.yml " + mobId);
                 if (minGroupSize < 1 || maxGroupSize < minGroupSize) {
                     throw new ConfigValidationException("Invalid group size for " + mobId + " in overworld_settings.yml.");
+                }
+                if (maxY < minY) {
+                    throw new ConfigValidationException("Invalid y range for " + mobId + " in overworld_settings.yml.");
                 }
                 validateBiomeFilters(mob, "overworld_settings.yml " + mobId);
             }
@@ -239,11 +260,43 @@ public final class DreadfallConfigManager {
                     requireInteger(mob, "weight", "overworld_settings.yml " + mobId),
                     requireInteger(mob, "min_group_size", "overworld_settings.yml " + mobId),
                     requireInteger(mob, "max_group_size", "overworld_settings.yml " + mobId),
+                    requireInteger(mob, "min_y", "overworld_settings.yml " + mobId),
+                    requireInteger(mob, "max_y", "overworld_settings.yml " + mobId),
                     optionalStringList(biomes, "allow"),
                     optionalStringList(biomes, "deny")
             ));
         }
         return List.copyOf(parsed);
+    }
+
+    private OverworldSpawnRuntimeConfig parseOverworldSpawnRuntime(Map<String, Object> root) throws ConfigValidationException {
+        if (!optionalBoolean(root, "enabled").orElse(true)) {
+            return new OverworldSpawnRuntimeConfig(false, 1.0, 0, 0, 100, 0, 24, 56);
+        }
+
+        Map<String, Object> worlds = requireMap(root, "worlds", "overworld_settings.yml");
+        Map<String, Object> overworld = optionalMap(worlds, "overworld", "overworld_settings.yml.worlds");
+        if (!optionalBoolean(overworld, "enabled").orElse(true)) {
+            return new OverworldSpawnRuntimeConfig(false, 1.0, 0, 0, 100, 0, 24, 56);
+        }
+
+        Map<String, Object> activeSpawning = optionalMap(overworld, "active_spawning", "overworld_settings.yml.worlds.overworld");
+        int minRadius = optionalInteger(activeSpawning, "min_spawn_radius").orElse(24);
+        int maxRadius = optionalInteger(activeSpawning, "max_spawn_radius").orElse(56);
+        if (minRadius < 1 || maxRadius < minRadius) {
+            throw new ConfigValidationException("Invalid active_spawning radius range in overworld_settings.yml.");
+        }
+
+        return new OverworldSpawnRuntimeConfig(
+                optionalBoolean(activeSpawning, "enabled").orElse(true),
+                optionalNumber(overworld, "spawn_pacing_multiplier").orElse(1.0),
+                optionalInteger(overworld, "global_spawn_cap").orElse(90),
+                optionalInteger(activeSpawning, "per_player_mob_cap").orElse(30),
+                optionalInteger(activeSpawning, "pulse_interval_ticks").orElse(100),
+                optionalInteger(activeSpawning, "spawn_attempts_per_player").orElse(6),
+                minRadius,
+                maxRadius
+        );
     }
 
     private void validateNightmareSettings(Map<String, Object> root) throws ConfigValidationException {
@@ -573,6 +626,10 @@ public final class DreadfallConfigManager {
             return Optional.of(number.doubleValue());
         }
         return Optional.empty();
+    }
+
+    private Optional<Double> optionalNumber(Map<String, Object> root, String key) {
+        return optionalDouble(root, key);
     }
 
     private Optional<Integer> optionalInteger(Map<String, Object> root, String key) {

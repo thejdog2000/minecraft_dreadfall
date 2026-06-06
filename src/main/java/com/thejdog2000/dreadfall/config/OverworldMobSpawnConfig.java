@@ -8,8 +8,9 @@ public record OverworldMobSpawnConfig(
         int weight,
         int minGroupSize,
         int maxGroupSize,
+        int minY,
+        int maxY,
         List<String> allowedBiomes,
         List<String> deniedBiomes
 ) {
 }
-

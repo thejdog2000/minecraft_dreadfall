@@ -6,6 +6,7 @@ import com.thejdog2000.dreadfall.behavior.MobBlockPlacer;
 import com.thejdog2000.dreadfall.command.DreadfallCommands;
 import com.thejdog2000.dreadfall.config.ConfigValidationException;
 import com.thejdog2000.dreadfall.config.DreadfallConfigManager;
+import com.thejdog2000.dreadfall.spawn.DreadfallSpawnDirector;
 import com.thejdog2000.dreadfall.spawn.OverworldSpawnRegistrar;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
@@ -31,6 +32,7 @@ public final class DreadfallMod implements ModInitializer {
         }
 
         OverworldSpawnRegistrar.register(configManager);
+        DreadfallSpawnDirector.register(configManager);
         MobSpawnApplier.register(configManager);
         MobBlockBreaker.register(configManager);
         MobBlockPlacer.register(configManager);

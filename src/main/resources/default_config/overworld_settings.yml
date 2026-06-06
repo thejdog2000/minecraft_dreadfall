@@ -9,11 +9,22 @@ worlds:
 
     active_spawning:
       enabled: true
-      per_player_mob_cap: 45
-      pulse_interval_ticks: 60
-      spawn_attempts_per_player: 12
       min_spawn_radius: 22
       max_spawn_radius: 58
+
+      daytime:
+        spawn_pacing_multiplier: 0.25
+        global_spawn_cap: 40
+        per_player_mob_cap: 6
+        pulse_interval_ticks: 240
+        spawn_attempts_per_player: 2
+
+      nighttime:
+        spawn_pacing_multiplier: 2.5
+        global_spawn_cap: 160
+        per_player_mob_cap: 45
+        pulse_interval_ticks: 60
+        spawn_attempts_per_player: 12
 
     mobs:
       minecraft:zombie:

@@ -76,7 +76,7 @@ public final class DreadfallConfigManager {
     private Instant lastLoadedAt;
     private Map<String, MobRuntimeConfig> mobConfigs = Map.of();
     private List<OverworldMobSpawnConfig> overworldSpawns = List.of();
-    private OverworldSpawnRuntimeConfig overworldSpawnRuntime = new OverworldSpawnRuntimeConfig(false, 1.0, 90, 30, 100, 6, 24, 56);
+    private OverworldSpawnRuntimeConfig overworldSpawnRuntime = inactiveOverworldSpawnRuntime();
     private BlockBreakRuntimeConfig blockBreaking = new BlockBreakRuntimeConfig(false, 40, 1.5, "normal", Map.of("normal", 120), Set.of(), Map.of());
     private BlockPlaceRuntimeConfig blockPlacing = new BlockPlaceRuntimeConfig(false, 60, 3, List.of("minecraft:dirt"));
     private boolean debugLoggingEnabled;
@@ -202,6 +202,10 @@ public final class DreadfallConfigManager {
             if (optionalInteger(activeSpawning, "per_player_mob_cap").orElse(30) < 1) {
                 throw new ConfigValidationException("active_spawning.per_player_mob_cap must be at least 1.");
             }
+            validateSpawnProfile(optionalMap(activeSpawning, "daytime", "overworld_settings.yml worlds." + worldEntry.getKey() + ".active_spawning"),
+                    "active_spawning.daytime");
+            validateSpawnProfile(optionalMap(activeSpawning, "nighttime", "overworld_settings.yml worlds." + worldEntry.getKey() + ".active_spawning"),
+                    "active_spawning.nighttime");
             Map<String, Object> mobs = requireMap(world, "mobs", "overworld_settings.yml worlds." + worldEntry.getKey());
             for (String mobId : mobs.keySet()) {
                 validateMobId(mobId, "overworld_settings.yml worlds." + worldEntry.getKey() + ".mobs");
@@ -271,13 +275,13 @@ public final class DreadfallConfigManager {
 
     private OverworldSpawnRuntimeConfig parseOverworldSpawnRuntime(Map<String, Object> root) throws ConfigValidationException {
         if (!optionalBoolean(root, "enabled").orElse(true)) {
-            return new OverworldSpawnRuntimeConfig(false, 1.0, 0, 0, 100, 0, 24, 56);
+            return inactiveOverworldSpawnRuntime();
         }
 
         Map<String, Object> worlds = requireMap(root, "worlds", "overworld_settings.yml");
         Map<String, Object> overworld = optionalMap(worlds, "overworld", "overworld_settings.yml.worlds");
         if (!optionalBoolean(overworld, "enabled").orElse(true)) {
-            return new OverworldSpawnRuntimeConfig(false, 1.0, 0, 0, 100, 0, 24, 56);
+            return inactiveOverworldSpawnRuntime();
         }
 
         Map<String, Object> activeSpawning = optionalMap(overworld, "active_spawning", "overworld_settings.yml.worlds.overworld");
@@ -289,14 +293,71 @@ public final class DreadfallConfigManager {
 
         return new OverworldSpawnRuntimeConfig(
                 optionalBoolean(activeSpawning, "enabled").orElse(true),
-                optionalNumber(overworld, "spawn_pacing_multiplier").orElse(1.0),
-                optionalInteger(overworld, "global_spawn_cap").orElse(90),
-                optionalInteger(activeSpawning, "per_player_mob_cap").orElse(30),
-                optionalInteger(activeSpawning, "pulse_interval_ticks").orElse(100),
-                optionalInteger(activeSpawning, "spawn_attempts_per_player").orElse(6),
-                minRadius,
-                maxRadius
+                parseSpawnProfile("daytime", overworld, activeSpawning, minRadius, maxRadius, 0.25, 40, 6, 240, 2),
+                parseSpawnProfile("nighttime", overworld, activeSpawning, minRadius, maxRadius, 2.5, 160, 45, 60, 12)
         );
+    }
+
+    private void validateSpawnProfile(Map<String, Object> profile, String path) throws ConfigValidationException {
+        if (profile.isEmpty()) {
+            return;
+        }
+        if (optionalInteger(profile, "pulse_interval_ticks").orElse(100) < 1) {
+            throw new ConfigValidationException(path + ".pulse_interval_ticks must be at least 1.");
+        }
+        if (optionalInteger(profile, "spawn_attempts_per_player").orElse(1) < 1) {
+            throw new ConfigValidationException(path + ".spawn_attempts_per_player must be at least 1.");
+        }
+        if (optionalInteger(profile, "per_player_mob_cap").orElse(1) < 1) {
+            throw new ConfigValidationException(path + ".per_player_mob_cap must be at least 1.");
+        }
+        if (optionalInteger(profile, "global_spawn_cap").orElse(1) < 1) {
+            throw new ConfigValidationException(path + ".global_spawn_cap must be at least 1.");
+        }
+    }
+
+    private OverworldSpawnRuntimeConfig.SpawnProfile parseSpawnProfile(
+            String name,
+            Map<String, Object> overworld,
+            Map<String, Object> activeSpawning,
+            int minRadius,
+            int maxRadius,
+            double defaultPacingMultiplier,
+            int defaultGlobalCap,
+            int defaultPerPlayerCap,
+            int defaultPulseIntervalTicks,
+            int defaultSpawnAttemptsPerPlayer
+    ) throws ConfigValidationException {
+        Map<String, Object> profile = optionalMap(activeSpawning, name, "overworld_settings.yml.worlds.overworld.active_spawning");
+        return new OverworldSpawnRuntimeConfig.SpawnProfile(
+                name,
+                optionalNumber(profile, "spawn_pacing_multiplier")
+                        .or(() -> optionalNumber(overworld, "spawn_pacing_multiplier"))
+                        .orElse(defaultPacingMultiplier),
+                optionalInteger(profile, "global_spawn_cap")
+                        .or(() -> optionalInteger(overworld, "global_spawn_cap"))
+                        .orElse(defaultGlobalCap),
+                optionalInteger(profile, "per_player_mob_cap")
+                        .or(() -> optionalInteger(activeSpawning, "per_player_mob_cap"))
+                        .orElse(defaultPerPlayerCap),
+                optionalInteger(profile, "pulse_interval_ticks")
+                        .or(() -> optionalInteger(activeSpawning, "pulse_interval_ticks"))
+                        .orElse(defaultPulseIntervalTicks),
+                optionalInteger(profile, "spawn_attempts_per_player")
+                        .or(() -> optionalInteger(activeSpawning, "spawn_attempts_per_player"))
+                        .orElse(defaultSpawnAttemptsPerPlayer),
+                optionalInteger(profile, "min_spawn_radius")
+                        .or(() -> optionalInteger(activeSpawning, "min_spawn_radius"))
+                        .orElse(minRadius),
+                optionalInteger(profile, "max_spawn_radius")
+                        .or(() -> optionalInteger(activeSpawning, "max_spawn_radius"))
+                        .orElse(maxRadius)
+        );
+    }
+
+    private static OverworldSpawnRuntimeConfig inactiveOverworldSpawnRuntime() {
+        OverworldSpawnRuntimeConfig.SpawnProfile inactiveProfile = new OverworldSpawnRuntimeConfig.SpawnProfile("inactive", 1.0, 1, 1, 100, 1, 24, 56);
+        return new OverworldSpawnRuntimeConfig(false, inactiveProfile, inactiveProfile);
     }
 
     private void validateNightmareSettings(Map<String, Object> root) throws ConfigValidationException {

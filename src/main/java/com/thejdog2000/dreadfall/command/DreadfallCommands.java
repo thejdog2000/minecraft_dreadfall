@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.thejdog2000.dreadfall.behavior.MobSpawnApplier;
 import com.thejdog2000.dreadfall.config.ConfigValidationException;
 import com.thejdog2000.dreadfall.config.DreadfallConfigManager;
+import com.thejdog2000.dreadfall.config.OverworldSpawnRuntimeConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -68,13 +69,24 @@ public final class DreadfallCommands {
         source.sendSuccess(() -> Component.literal("Dreadfall debug logging: " + configManager.isDebugLoggingEnabled()), false);
         source.sendSuccess(() -> Component.literal("Dreadfall configured mob settings: " + configManager.getMobConfigCount()), false);
         source.sendSuccess(() -> Component.literal("Dreadfall configured overworld spawns: " + configManager.getOverworldSpawns().size()), false);
+        OverworldSpawnRuntimeConfig spawnRuntime = configManager.getOverworldSpawnRuntime();
+        OverworldSpawnRuntimeConfig.SpawnProfile currentProfile = spawnRuntime.profileForClockTime(source.getLevel().getOverworldClockTime());
         source.sendSuccess(() -> Component.literal("Dreadfall active overworld spawning: "
-                + configManager.getOverworldSpawnRuntime().enabled()
-                + " cap=" + configManager.getOverworldSpawnRuntime().globalSpawnCap()
-                + " per_player=" + configManager.getOverworldSpawnRuntime().perPlayerMobCap()
-                + " interval=" + configManager.getOverworldSpawnRuntime().pulseIntervalTicks()), false);
+                + spawnRuntime.enabled()
+                + " current=" + currentProfile.name()
+                + " daytime=" + describeSpawnProfile(spawnRuntime.daytime())
+                + " nighttime=" + describeSpawnProfile(spawnRuntime.nighttime())), false);
         source.sendSuccess(() -> Component.literal("Dreadfall last loaded: " + loaded), false);
         return 1;
+    }
+
+    private static String describeSpawnProfile(OverworldSpawnRuntimeConfig.SpawnProfile profile) {
+        return "[cap=" + profile.globalSpawnCap()
+                + " per_player=" + profile.perPlayerMobCap()
+                + " interval=" + profile.pulseIntervalTicks()
+                + " attempts=" + profile.spawnAttemptsPerPlayer()
+                + " pacing=" + profile.spawnPacingMultiplier()
+                + "]";
     }
 
     private static int testSpawn(CommandSourceStack source, DreadfallConfigManager configManager, String mobId) {

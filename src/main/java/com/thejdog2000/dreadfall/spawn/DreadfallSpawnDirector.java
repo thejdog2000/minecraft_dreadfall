@@ -40,10 +40,7 @@ public final class DreadfallSpawnDirector {
 
     private void tickServer(MinecraftServer server) {
         OverworldSpawnRuntimeConfig runtime = configManager.getOverworldSpawnRuntime();
-        if (!runtime.enabled() || server.getTickCount() % runtime.pulseIntervalTicks() != 0) {
-            return;
-        }
-        if (server.getWorldData().getDifficulty() == Difficulty.PEACEFUL) {
+        if (!runtime.enabled() || server.getWorldData().getDifficulty() == Difficulty.PEACEFUL) {
             return;
         }
 
@@ -52,25 +49,30 @@ public final class DreadfallSpawnDirector {
             return;
         }
 
+        OverworldSpawnRuntimeConfig.SpawnProfile profile = runtime.profileForClockTime(level.getOverworldClockTime());
+        if (server.getTickCount() % profile.pulseIntervalTicks() != 0) {
+            return;
+        }
+
         int globalCount = countMonsters(level, null, 0);
-        int globalCap = Math.max(1, (int) Math.round(runtime.globalSpawnCap() * runtime.spawnPacingMultiplier()));
+        int globalCap = Math.max(1, (int) Math.round(profile.globalSpawnCap() * profile.spawnPacingMultiplier()));
         if (globalCount >= globalCap) {
             return;
         }
 
         for (ServerPlayer player : level.players()) {
-            int perPlayerCap = Math.max(1, (int) Math.round(runtime.perPlayerMobCap() * runtime.spawnPacingMultiplier()));
-            int nearbyCount = countMonsters(level, player, runtime.maxSpawnRadius() + 16);
+            int perPlayerCap = Math.max(1, (int) Math.round(profile.perPlayerMobCap() * profile.spawnPacingMultiplier()));
+            int nearbyCount = countMonsters(level, player, profile.maxSpawnRadius() + 16);
             if (nearbyCount >= perPlayerCap) {
                 continue;
             }
 
             int budget = Math.min(perPlayerCap - nearbyCount, globalCap - globalCount);
-            int spawned = spawnPulse(level, player, runtime, budget);
+            int spawned = spawnPulse(level, player, profile, budget);
             globalCount += spawned;
             if (spawned > 0 && configManager.isDebugLoggingEnabled()) {
-                DreadfallMod.LOGGER.info("Dreadfall spawn pulse player={} spawned={} nearby_before={} global_now={}/{}",
-                        player.getScoreboardName(), spawned, nearbyCount, globalCount, globalCap);
+                DreadfallMod.LOGGER.info("Dreadfall spawn pulse profile={} player={} spawned={} nearby_before={} global_now={}/{}",
+                        profile.name(), player.getScoreboardName(), spawned, nearbyCount, globalCount, globalCap);
             }
             if (globalCount >= globalCap) {
                 return;
@@ -78,9 +80,9 @@ public final class DreadfallSpawnDirector {
         }
     }
 
-    private int spawnPulse(ServerLevel level, ServerPlayer player, OverworldSpawnRuntimeConfig runtime, int budget) {
+    private int spawnPulse(ServerLevel level, ServerPlayer player, OverworldSpawnRuntimeConfig.SpawnProfile profile, int budget) {
         int spawned = 0;
-        int attempts = Math.min(budget, runtime.spawnAttemptsPerPlayer());
+        int attempts = Math.min(budget, profile.spawnAttemptsPerPlayer());
         for (int attempt = 0; attempt < attempts; attempt++) {
             Optional<OverworldMobSpawnConfig> spawnConfig = chooseSpawn();
             if (spawnConfig.isEmpty()) {
@@ -94,7 +96,7 @@ public final class DreadfallSpawnDirector {
 
             int groupSize = randomInt(spawnConfig.get().minGroupSize(), spawnConfig.get().maxGroupSize());
             for (int index = 0; index < groupSize && spawned < budget; index++) {
-                if (trySpawn(level, player, runtime, spawnConfig.get(), entityType.get())) {
+                if (trySpawn(level, player, profile, spawnConfig.get(), entityType.get())) {
                     spawned++;
                 }
             }
@@ -122,8 +124,8 @@ public final class DreadfallSpawnDirector {
         return Optional.empty();
     }
 
-    private boolean trySpawn(ServerLevel level, ServerPlayer player, OverworldSpawnRuntimeConfig runtime, OverworldMobSpawnConfig spawnConfig, EntityType<?> entityType) {
-        BlockPos position = choosePosition(level, player, runtime, spawnConfig, entityType);
+    private boolean trySpawn(ServerLevel level, ServerPlayer player, OverworldSpawnRuntimeConfig.SpawnProfile profile, OverworldMobSpawnConfig spawnConfig, EntityType<?> entityType) {
+        BlockPos position = choosePosition(level, player, profile, spawnConfig, entityType);
         Entity entity = entityType.create(level, spawned -> {
         }, position, EntitySpawnReason.NATURAL, true, false);
         if (entity == null) {
@@ -137,10 +139,10 @@ public final class DreadfallSpawnDirector {
         return level.addFreshEntity(entity);
     }
 
-    private BlockPos choosePosition(ServerLevel level, ServerPlayer player, OverworldSpawnRuntimeConfig runtime, OverworldMobSpawnConfig spawnConfig, EntityType<?> entityType) {
+    private BlockPos choosePosition(ServerLevel level, ServerPlayer player, OverworldSpawnRuntimeConfig.SpawnProfile profile, OverworldMobSpawnConfig spawnConfig, EntityType<?> entityType) {
         ThreadLocalRandom random = ThreadLocalRandom.current();
         double angle = random.nextDouble(Math.PI * 2.0D);
-        int radius = randomInt(runtime.minSpawnRadius(), runtime.maxSpawnRadius());
+        int radius = randomInt(profile.minSpawnRadius(), profile.maxSpawnRadius());
         int x = player.blockPosition().getX() + (int) Math.round(Math.cos(angle) * radius);
         int z = player.blockPosition().getZ() + (int) Math.round(Math.sin(angle) * radius);
         int surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);

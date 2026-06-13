@@ -398,6 +398,12 @@ public final class DreadfallConfigManager {
         if (power < 0.0) {
             throw new ConfigValidationException(path + ".projectiles.explosive_arrows.power must be >= 0.");
         }
+        if (optionalDouble(explosiveArrows, "inaccuracy_multiplier").orElse(1.0) < 0.0) {
+            throw new ConfigValidationException(path + ".projectiles.explosive_arrows.inaccuracy_multiplier must be >= 0.");
+        }
+        if (optionalInteger(explosiveArrows, "min_attack_interval_ticks").orElse(1) < 1) {
+            throw new ConfigValidationException(path + ".projectiles.explosive_arrows.min_attack_interval_ticks must be at least 1.");
+        }
     }
 
     private void validateEquipmentSettings(Map<String, Object> mob, String path) throws ConfigValidationException {
@@ -540,7 +546,9 @@ public final class DreadfallConfigManager {
                         optionalBoolean(explosiveArrows, "enabled").orElse(false),
                         optionalDouble(explosiveArrows, "power").orElse(0.0),
                         optionalBoolean(explosiveArrows, "causes_fire").orElse(false),
-                        optionalBoolean(explosiveArrows, "damages_blocks").orElse(true)
+                        optionalBoolean(explosiveArrows, "damages_blocks").orElse(true),
+                        optionalDouble(explosiveArrows, "inaccuracy_multiplier").orElse(1.0),
+                        optionalInteger(explosiveArrows, "min_attack_interval_ticks")
                 )
         );
     }

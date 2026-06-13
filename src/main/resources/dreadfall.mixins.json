@@ -3,6 +3,7 @@
   "package": "com.thejdog2000.dreadfall.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
+    "AbstractSkeletonAttackMixin",
     "AbstractArrowExplosionMixin",
     "CreeperAccessor",
     "LargeFireballAccessor",

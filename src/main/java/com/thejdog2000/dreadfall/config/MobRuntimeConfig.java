@@ -55,7 +55,9 @@ public record MobRuntimeConfig(
             boolean enabled,
             double power,
             boolean causesFire,
-            boolean damagesBlocks
+            boolean damagesBlocks,
+            double inaccuracyMultiplier,
+            Optional<Integer> minAttackIntervalTicks
     ) {
     }
 

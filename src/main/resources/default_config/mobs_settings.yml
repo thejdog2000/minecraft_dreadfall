@@ -128,6 +128,8 @@ mobs:
         power: 1.0
         causes_fire: false
         damages_blocks: true
+        inaccuracy_multiplier: 2.0
+        min_attack_interval_ticks: 60
 
     block_breaking:
       enabled: false

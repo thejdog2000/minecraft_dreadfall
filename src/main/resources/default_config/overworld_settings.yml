@@ -4,8 +4,8 @@ enabled: true
 worlds:
   overworld:
     enabled: true
-    spawn_pacing_multiplier: 2.5
-    global_spawn_cap: 160
+    spawn_pacing_multiplier: 1.0
+    global_spawn_cap: 80
 
     active_spawning:
       enabled: true
@@ -20,16 +20,16 @@ worlds:
         spawn_attempts_per_player: 2
 
       nighttime:
-        spawn_pacing_multiplier: 2.5
-        global_spawn_cap: 160
-        per_player_mob_cap: 45
-        pulse_interval_ticks: 60
-        spawn_attempts_per_player: 12
+        spawn_pacing_multiplier: 1.0
+        global_spawn_cap: 80
+        per_player_mob_cap: 18
+        pulse_interval_ticks: 120
+        spawn_attempts_per_player: 4
 
     mobs:
       minecraft:zombie:
         enabled: true
-        weight: 100
+        weight: 180
         min_group_size: 1
         max_group_size: 4
         min_y: -64
@@ -42,7 +42,7 @@ worlds:
 
       minecraft:skeleton:
         enabled: true
-        weight: 80
+        weight: 20
         min_group_size: 1
         max_group_size: 4
         min_y: -64
@@ -70,7 +70,7 @@ worlds:
 
       minecraft:ghast:
         enabled: true
-        weight: 40
+        weight: 6
         min_group_size: 1
         max_group_size: 1
         min_y: 80

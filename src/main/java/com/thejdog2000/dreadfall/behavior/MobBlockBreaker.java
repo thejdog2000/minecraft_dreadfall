@@ -9,6 +9,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -18,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 public final class MobBlockBreaker {
     private final DreadfallConfigManager configManager;
@@ -98,9 +101,11 @@ public final class MobBlockBreaker {
         int requiredTicks = blockBreaking.breakTicksFor(blockId);
         int progressStage = Math.min(9, Math.max(0, (int) Math.floor((state.progressTicks / (double) requiredTicks) * 10.0)));
         level.destroyBlockProgress(mob.getId(), blockPos, progressStage);
+        level.playSound(null, blockPos, SoundEvents.ZOMBIE_ATTACK_WOODEN_DOOR, SoundSource.HOSTILE, 0.35F, randomPitch(0.8F, 0.25F));
 
         if (state.progressTicks >= requiredTicks) {
             level.destroyBlockProgress(mob.getId(), blockPos, -1);
+            level.playSound(null, blockPos, SoundEvents.ZOMBIE_BREAK_WOODEN_DOOR, SoundSource.HOSTILE, 0.7F, randomPitch(0.85F, 0.2F));
             level.destroyBlock(blockPos, true, mob, 512);
             if (configManager.isDebugLoggingEnabled()) {
                 DreadfallMod.LOGGER.info("Mob broke block entity_id={} mob={} block={} pos={} required_ticks={}", mob.getId(), mobId, blockId, blockPos, requiredTicks);
@@ -141,6 +146,10 @@ public final class MobBlockBreaker {
         }
 
         return Optional.empty();
+    }
+
+    private float randomPitch(float base, float spread) {
+        return base + ThreadLocalRandom.current().nextFloat() * spread;
     }
 
     private static final class BreakState {

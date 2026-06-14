@@ -113,11 +113,11 @@ mobs:
       max_health: 20.0
       movement_speed: 0.25
       attack_damage: 2.0
-      follow_range: 36.0
+      follow_range: 44.0
 
     aggro:
       enabled: true
-      detection_range: 40.0
+      detection_range: 48.0
 
     sunlight:
       burns_in_daylight: false
@@ -125,7 +125,7 @@ mobs:
     projectiles:
       explosive_arrows:
         enabled: true
-        power: 1.0
+        power: 1.2
         causes_fire: false
         damages_blocks: true
         inaccuracy_multiplier: 2.0
